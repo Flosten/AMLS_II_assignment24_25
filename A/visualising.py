@@ -52,3 +52,102 @@ def origin_image_plot(train_dataset):
         axes[row, col].spines["right"].set_visible(False)
 
     return fig1, fig2
+
+
+def learning_curve(history):
+    history_frame = pd.DataFrame(history.history)
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+    ax.plot(history_frame["loss"], label="Training Loss")
+    ax.plot(history_frame["val_loss"], label="Validation Loss")
+    ax.legend()
+    ax.set_xlabel("Epochs")
+    ax.set_ylabel("Loss")
+
+    return fig
+
+
+def plot_cive_result(dataset):
+    fig, axes = plt.subplots(1, 3, figsize=(12, 8))
+
+    for image, mask in dataset.skip(14).take(1):
+        # for image, mask in dataset.take(3):
+        axes[0].imshow(image)
+        axes[0].set_xlabel("Original Image", fontsize=15)
+        axes[0].set_xticks([])
+        axes[0].set_yticks([])
+        axes[0].spines["top"].set_visible(False)
+        axes[0].spines["bottom"].set_visible(False)
+        axes[0].spines["left"].set_visible(False)
+        axes[0].spines["right"].set_visible(False)
+
+        axes[1].imshow(mask)
+        axes[1].set_xlabel("Mask Image", fontsize=15)
+        axes[1].set_xticks([])
+        axes[1].set_yticks([])
+        axes[1].spines["top"].set_visible(False)
+        axes[1].spines["bottom"].set_visible(False)
+        axes[1].spines["left"].set_visible(False)
+        axes[1].spines["right"].set_visible(False)
+
+        image_pro = image * mask
+        axes[2].imshow(image_pro)
+        axes[2].set_xlabel("Processed Image", fontsize=15)
+        axes[2].set_xticks([])
+        axes[2].set_yticks([])
+        axes[2].spines["top"].set_visible(False)
+        axes[2].spines["bottom"].set_visible(False)
+        axes[2].spines["left"].set_visible(False)
+        axes[2].spines["right"].set_visible(False)
+
+    return fig
+
+
+# def origin_Unet_result_plot(origin_image: list, mask_image: list, image_name: list):
+#     fig, axes = plt.subplots(4, 2, figsize=(6, 10))
+#     for i in range(4):
+#         axes[i, 0].imshow(origin_image[i])
+#         axes[i, 0].set_xlabel(image_name[i], fontsize=15)
+#         axes[i, 0].set_xticks([])
+#         axes[i, 0].set_yticks([])
+#         axes[i, 0].spines["top"].set_visible(False)
+#         axes[i, 0].spines["bottom"].set_visible(False)
+#         axes[i, 0].spines["left"].set_visible(False)
+#         axes[i, 0].spines["right"].set_visible(False)
+
+#         axes[i, 1].imshow(origin_image[i] * mask_image[i])
+#         axes[i, 1].set_xlabel(f"Processed {image_name[i]}", fontsize=15)
+#         axes[i, 1].set_xticks([])
+#         axes[i, 1].set_yticks([])
+#         axes[i, 1].spines["top"].set_visible(False)
+#         axes[i, 1].spines["bottom"].set_visible(False)
+#         axes[i, 1].spines["left"].set_visible(False)
+#         axes[i, 1].spines["right"].set_visible(False)
+#         plt.tight_layout(pad=0.3)
+
+#     return fig
+
+
+def origin_Unet_result_plot(origin_image: list, mask_image: list, image_name: list):
+    fig, axes = plt.subplots(2, 4, figsize=(10, 6))
+    for i in range(4):
+        axes[0, i].imshow(origin_image[i])
+        axes[0, i].set_xlabel(image_name[i], fontsize=15)
+        axes[0, i].set_xticks([])
+        axes[0, i].set_yticks([])
+        axes[0, i].spines["top"].set_visible(False)
+        axes[0, i].spines["bottom"].set_visible(False)
+        axes[0, i].spines["left"].set_visible(False)
+        axes[0, i].spines["right"].set_visible(False)
+
+        axes[1, i].imshow(origin_image[i] * mask_image[i])
+        axes[1, i].set_xlabel(f"Processed {image_name[i]}", fontsize=15)
+        axes[1, i].set_xticks([])
+        axes[1, i].set_yticks([])
+        axes[1, i].spines["top"].set_visible(False)
+        axes[1, i].spines["bottom"].set_visible(False)
+        axes[1, i].spines["left"].set_visible(False)
+        axes[1, i].spines["right"].set_visible(False)
+        plt.tight_layout(pad=0.3)
+
+    return fig
