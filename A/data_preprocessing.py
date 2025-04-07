@@ -336,3 +336,123 @@ def load_testset(filenames, image_size, labeled, ordered=False):
 def count_data_items(trainset):
     sample_count = sum(1 for _ in trainset)
     return sample_count
+
+
+# --------preprocessing for classification task--------
+
+
+def create_classification_dataset_batch(model, dataset, batch_size=64, threshold=0.4):
+    images, labels = [], []
+
+    for image, label in dataset:
+        images.append(image)
+        labels.append(label)
+
+    images = tf.stack(images)
+    labels = tf.convert_to_tensor(labels)
+
+    # predict the mask
+    masks = model.predict(images, batch_size=batch_size)
+    masks = masks > threshold
+    masks = tf.cast(masks, tf.float32)
+
+    # segment the image
+    segmented_images = images * masks
+
+    return tf.data.Dataset.from_tensor_slices((segmented_images, labels))
+
+
+def _bytes_feature(value):
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
+
+
+def _int64_feature(value):
+    return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
+
+
+def create_example(image, label, image_type=tf.float32):
+    # image_raw = tf.io.serialize_tensor(tf.cast(image, image_type)).numpy()
+    image_uint8 = tf.image.convert_image_dtype(image, tf.uint8)
+    image_raw = tf.image.encode_jpeg(image_uint8).numpy()
+    label = int(label.numpy())
+
+    feature = {
+        "image": _bytes_feature(image_raw),
+        "target": _int64_feature(label),
+    }
+    return tf.train.Example(features=tf.train.Features(feature=feature))
+
+
+def save_tfrecord(dataset, filename):
+    with tf.io.TFRecordWriter(filename) as writer:
+        for image, label in dataset:
+            example = create_example(image, label)
+            writer.write(example.SerializeToString())
+    print(f"{filename} saved")
+
+
+def count_data_items_from_tfrecord(filenames):
+    count = 0
+    for f in filenames:
+        for _ in tf.data.TFRecordDataset(f):
+            count += 1
+    return count
+
+
+def preprocess_image_for_classification(
+    GCS_path,
+    train_file_path,
+    val_file_path,
+    test_file_path,
+    image_size,
+    batch_size,
+    autotune,
+):
+    trainset_path = GCS_path + train_file_path
+    trainset_files = tf.io.gfile.glob(trainset_path)
+    num_trainset = count_data_items_from_tfrecord(trainset_files)
+    valset_path = GCS_path + val_file_path
+    valset_files = tf.io.gfile.glob(valset_path)
+    num_valset = count_data_items_from_tfrecord(valset_files)
+    testset_path = GCS_path + test_file_path
+
+    trainset = load_trainset(trainset_files, image_size=image_size, labeled=True)
+    # trainset = trainset.repeat()
+    trainset = trainset.shuffle(2048, seed=711)
+    trainset = trainset.repeat()
+    trainset = trainset.batch(batch_size)
+    trainset = trainset.prefetch(autotune)
+    valset = load_valset(valset_path, image_size=image_size, labeled=True)
+    valset = valset.repeat().batch(batch_size).prefetch(autotune)
+    testset = load_testset(testset_path, image_size=image_size, labeled=True)
+    testset = testset.batch(batch_size).prefetch(autotune)
+
+    return trainset, valset, testset, num_trainset, num_valset
+
+
+def preprocess_image_for_compare(
+    GCS_path,
+    train_file_path,
+    image_size,
+    train_ratio,
+    val_ratio,
+    batch_size,
+    autotune,
+):
+    trainfile, valfile, testfile = split_data_classification(
+        GCS_path, train_file_path, train_ratio, val_ratio
+    )
+    num_trainset = count_data_items_from_tfrecord(trainfile)
+    num_valset = count_data_items_from_tfrecord(valfile)
+
+    trainset = load_trainset(trainfile, image_size=image_size, labeled=True)
+    trainset = trainset.repeat()
+    trainset = trainset.shuffle(2048, seed=711)
+    trainset = trainset.batch(batch_size)
+    trainset = trainset.prefetch(autotune)
+    valset = load_valset(valfile, image_size=image_size, labeled=True)
+    valset = valset.repeat().batch(batch_size).prefetch(autotune)
+    testset = load_testset(testfile, image_size=image_size, labeled=True)
+    testset = testset.batch(batch_size).prefetch(autotune)
+
+    return trainset, valset, testset, num_trainset, num_valset

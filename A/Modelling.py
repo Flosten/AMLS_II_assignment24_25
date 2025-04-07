@@ -16,6 +16,7 @@ def set_seed(seed=711):
     random.seed(seed)
     np.random.seed(seed)
     tf.random.set_seed(seed)
+    os.environ["TF_DETERMINISTIC_OPS"] = "1"
 
     return tf.random.Generator.from_seed(seed)
 
@@ -210,3 +211,84 @@ def Unet_test(model, dataset):
     )
 
     return fig
+
+
+def EfficientNetB0_Arch(
+    dropout_ratio, layers_freezed, input_shape=(224, 224, 3), classes=5
+):
+    base_model = EfficientNetB0(
+        include_top=False, weights="imagenet", input_shape=input_shape
+    )
+    base_model.trainable = True
+
+    # Freeze some layers
+    # cheak the number of layers in the base model
+    print(len(base_model.layers))  # 238
+    # Freeze the first 150 layers
+    for layer in base_model.layers[:layers_freezed]:
+        layer.trainable = False
+
+    model = models.Sequential(
+        [
+            base_model,
+            layers.GlobalAveragePooling2D(),
+            layers.Dense(128, activation="relu"),
+            layers.Dropout(dropout_ratio),
+            layers.Dense(classes, activation="softmax"),
+        ]
+    )
+
+    return model
+
+
+def Effi_B0_train(
+    model,
+    trainset,
+    valset,
+    epochs,
+    learning_scheduler,
+    num_samples,
+    num_valset,
+    batch_size,
+):
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(
+            learning_rate=learning_scheduler, epsilon=0.001
+        ),
+        loss="sparse_categorical_crossentropy",
+        metrics=["sparse_categorical_accuracy"],
+    )
+
+    history = model.fit(
+        trainset,
+        validation_data=valset,
+        epochs=epochs,
+        steps_per_epoch=num_samples // batch_size,
+        validation_steps=num_valset // batch_size,
+    )
+
+    fig = vs.learning_curve(history)
+
+    return model, fig, history
+
+
+def Effi_B0_test(model, testset):
+
+    y_true = []
+    y_pred = []
+
+    # get the image and label from the testset
+    for images, labels in testset:
+        preds = model.predict(images)
+        preds = np.argmax(preds, axis=1)
+        y_true.extend(labels.numpy())
+        y_pred.extend(preds)
+
+    # convert to numpy array
+    y_true = np.array(y_true)
+    y_pred = np.array(y_pred)
+
+    # get the classification result
+    fig, acc = vs.classfication_result(y_true, y_pred)
+
+    return fig, acc

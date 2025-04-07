@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import pandas as pd
+from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_matrix
 
 
 def origin_image_plot(train_dataset):
@@ -151,3 +152,31 @@ def origin_Unet_result_plot(origin_image: list, mask_image: list, image_name: li
         plt.tight_layout(pad=0.3)
 
     return fig
+
+
+def classfication_result(y_true, y_pred):
+
+    # calculate the accuracy
+    acc = accuracy_score(y_true, y_pred)
+
+    # calculate the confusion matrix
+    cm = confusion_matrix(y_true, y_pred)
+
+    # plot the confusion matrix
+    fig, ax = plt.subplots(figsize=(10, 10))
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+    disp.plot(ax=ax, cmap="Blues", values_format=".4g")
+    ax.set_xlabel("Predicted Label", fontsize=15)
+    ax.set_ylabel("True Label", fontsize=15)
+
+    # set the x and y ticks
+    xticks = ["CBB", "CBSD", "CGM", "CMD", "Healthy"]
+    yticks = ["CBB", "CBSD", "CGM", "CMD", "Healthy"]
+    ax.set_xticks(range(len(xticks)))
+    ax.set_xticklabels(xticks, fontsize=12)
+    ax.set_yticks(range(len(yticks)))
+    ax.set_yticklabels(yticks, fontsize=12)
+
+    ax.tight_layout(pad=0.3)
+
+    return fig, acc
