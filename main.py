@@ -231,7 +231,7 @@ def task_A():
     enet_model_done = load_model(os.path.join(model_dir, "EfficientNetB1_model.h5"))
     # test the EfficientNet B1 model
     fig_enet, acc_enet = mdl.Effi_B1_test(enet_model_done, testset_enet)
-    # fig_enet.savefig(os.path.join(fig_path, "EfficientNetB1_model_test_result.png"))
+    fig_enet.savefig(os.path.join(fig_path, "EfficientNetB1_model_test_result.png"))
     # output the results
     trainset_data_path = gcs_path + trainset_path_enet
     trainset_file = tf.io.gfile.glob(trainset_data_path)
