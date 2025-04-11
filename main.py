@@ -1,3 +1,7 @@
+"""
+This file contains the main function to run the project.
+"""
+
 import math
 import os
 import re
@@ -17,6 +21,13 @@ import A.Modelling as mdl
 
 # Task A
 def task_A():
+    """
+    This function is the main function for cassava leaf disease classification task.
+
+    Returns:
+        acc_a_train: The accuracy of the EfficientNet B1 model on the train set.
+        acc_a_test: The accuracy of the EfficientNet B1 model on the test set.
+    """
     # set parameters
     autotune = tf.data.experimental.AUTOTUNE
     gcs_path = "./Datasets"
@@ -292,6 +303,13 @@ def task_A():
 
 
 def task_B():
+    """
+    This function is empty because this project involves only one task
+
+    Returns:
+        acc_b_train: TBD
+        acc_b_test: TBD
+    """
     acc_b_train = "TBD"
     acc_b_test = "TBD"
     return acc_b_train, acc_b_test
