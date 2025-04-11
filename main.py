@@ -174,17 +174,17 @@ def task_A():
     # --------------create the classification model--------------
     # get the trainset, validation set and test set
     # original dataset
-    trainset_ori, valset_ori, testset_ori, num_train_ori, num_val_ori = (
-        dp.preprocess_image_for_compare(
-            gcs_path,
-            trainset_path,
-            image_size_enet,
-            train_ratio_cnn,
-            val_ratio_cnn,
-            batch_size_enet,
-            autotune,
-        )
-    )
+    # trainset_ori, valset_ori, testset_ori, num_train_ori, num_val_ori = (
+    #     dp.preprocess_image_for_compare(
+    #         gcs_path,
+    #         trainset_path,
+    #         image_size_enet,
+    #         train_ratio_cnn,
+    #         val_ratio_cnn,
+    #         batch_size_enet,
+    #         autotune,
+    #     )
+    # )
 
     # new dataset
     trainset_enet, valset_enet, testset_enet, num_train_enet, num_val_enet = (
@@ -268,11 +268,11 @@ def task_A():
     # eff_model_ori_done.save(os.path.join(model_dir, "EfficientNetB1_model_ori.keras"))
 
     # load the EfficientNet B1 model
-    eff_model_ori_done = load_model(
-        os.path.join(model_dir, "EfficientNetB1_model_ori.h5")
-    )
+    # eff_model_ori_done = load_model(
+    #     os.path.join(model_dir, "EfficientNetB1_model_ori.h5")
+    # )
     # test the EfficientNet B1 model
-    _, acc_ori_test = mdl.Effi_B1_test(eff_model_ori_done, testset_ori)
+    # _, acc_ori_test = mdl.Effi_B1_test(eff_model_ori_done, testset_ori)
     # # get the trainset
     # trainset_data_path_ori = gcs_path + trainset_path
     # trainset_file_ori = tf.io.gfile.glob(trainset_data_path_ori)
@@ -282,22 +282,22 @@ def task_A():
     # trainset_output_ori = trainset_output_ori.batch(batch_size_enet).prefetch(autotune)
     # _, acc_ori_train = mdl.Effi_B1_test(eff_model_ori_done, trainset_output_ori)
 
-    # baseline model
-    baseline_model = load_model(
-        os.path.join(model_dir, "baseline_model.h5"),
-        custom_objects={
-            "preprocess_input": tf.keras.applications.resnet50.preprocess_input
-        },
-    )
-    # test the baseline model
-    _, acc_baseline_test = mdl.Effi_B1_test(baseline_model, testset_ori)
+    # # baseline model
+    # baseline_model = load_model(
+    #     os.path.join(model_dir, "baseline_model.h5"),
+    #     custom_objects={
+    #         "preprocess_input": tf.keras.applications.resnet50.preprocess_input
+    #     },
+    # )
+    # # test the baseline model
+    # _, acc_baseline_test = mdl.Effi_B1_test(baseline_model, testset_ori)
 
-    # print the results
-    print(
-        "The accuracy of the EfficientNet B1 model without image segmentation is: ",
-        acc_ori_test,
-    )
-    print("The accuracy of the baseline model is: ", acc_baseline_test)
+    # # print the results
+    # print(
+    #     "The accuracy of the EfficientNet B1 model without image segmentation is: ",
+    #     acc_ori_test,
+    # )
+    # print("The accuracy of the baseline model is: ", acc_baseline_test)
 
     return acc_a_train, acc_a_test
 
