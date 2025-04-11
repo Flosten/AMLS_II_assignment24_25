@@ -1,4 +1,19 @@
-import re
+"""
+This file contains all the functions to preprocess the dataset for
+the cassava leaf image classification task.
+The functions include:
+- `image acquisition`
+- `image preprocessing`
+- `CIVE calculation`
+- `mask creation`
+- `dataset preprocessing for image segmentation`
+- `dataset creation`
+- `tfrecord saving`
+- `dataset loading`
+- `dataset preprocessing for classification`
+"""
+
+# import re
 from functools import partial
 
 import numpy as np
@@ -9,6 +24,18 @@ import A.visualising as vs
 
 
 def UNet_preprocessing_pro(dataset, batch_size, gen):
+    """
+    Preprocess the dataset including healthy and CBB images for UNet training.
+
+    Args:
+        dataset: tf.data.Dataset object.
+        batch_size: int, batch size for the dataset.
+        gen: tf.random.Generator object.
+
+    Returns:
+        unet_trainset: tf.data.Dataset object for training.
+        unet_valset: tf.data.Dataset object for validation.
+    """
     healthy_leaf_set = get_healthy_image(dataset)
     unet_dataset = build_Unet_dataset(healthy_leaf_set)
     cbb_leaf_set = get_CBB_image(dataset)
@@ -58,6 +85,15 @@ def UNet_preprocessing_pro(dataset, batch_size, gen):
 
 
 def build_cbb_dataset(train_dataset):
+    """
+    Build the dataset for CBB images.
+
+    Args:
+        train_dataset: tf.data.Dataset object.
+
+    Returns:
+        cbb_dataset: tf.data.Dataset object for CBB images.
+    """
     cbb_dataset = train_dataset.map(
         create_mask_pair_cbb, num_parallel_calls=tf.data.experimental.AUTOTUNE
     )
@@ -65,11 +101,22 @@ def build_cbb_dataset(train_dataset):
 
 
 def UNet_preprocessing(dataset, batch_size):
+    """
+    Preprocess the dataset including healthy images for UNet training.
+
+    Args:
+        dataset: tf.data.Dataset object.
+        batch_size: int, batch size for the dataset.
+
+    Returns:
+        unet_trainset: tf.data.Dataset object for training.
+        unet_valset: tf.data.Dataset object for validation.
+    """
     healthy_leaf_set = get_healthy_image(dataset)
     unet_dataset = build_Unet_dataset(healthy_leaf_set)
 
-    # fig = vs.plot_cive_result(unet_dataset)
-    # fig.savefig("figures/Image after CIVE.png")
+    fig = vs.plot_cive_result(unet_dataset)
+    fig.savefig("figures/Image after CIVE.png")
 
     image = []
     mask = []
@@ -98,6 +145,15 @@ def UNet_preprocessing(dataset, batch_size):
 
 
 def compute_cive(image):
+    """
+    Compute the CIVE index for a given healthy cassava leaf image.
+
+    Args:
+        image: np.ndarray, input image.
+
+    Returns:
+        cive: np.ndarray, CIVE index.
+    """
     # CIVE = 0.441 * R - 0.811 * G + 0.385 * B + 18.78745
     R = image[:, :, 0]
     G = image[:, :, 1]
@@ -107,7 +163,16 @@ def compute_cive(image):
 
 
 def compute_cive_cbb(image):
-    # CIVE = 5.95 * R + 0.6 * G - 1.885 * B - 48.787
+    """
+    Compute the CIVE index for a given CBB cassava leaf image.
+
+    Args:
+        image: np.ndarray, input image.
+
+    Returns:
+        cive: np.ndarray, CIVE index.
+    """
+    # CIVE = 10.441 * R + 0.611 * G - 1.885 * B - 48.787
     R = image[:, :, 0]
     G = image[:, :, 1]
     B = image[:, :, 2]
@@ -116,6 +181,16 @@ def compute_cive_cbb(image):
 
 
 def get_mask(cive, threshold=None):
+    """
+    Create the mask based on the CIVE index.
+
+    Args:
+        cive: np.ndarray, CIVE index.
+        threshold: float, threshold value for mask creation.
+
+    Returns:
+        mask: np.ndarray, binary mask.
+    """
     if threshold is None:
         # threshold = tf.reduce_mean(cive)
         threshold = 18.7  # threshold is set to 18.7
@@ -125,6 +200,16 @@ def get_mask(cive, threshold=None):
 
 
 def get_mask_cbb(cive, threshold=None):
+    """
+    Create the mask based on the CIVE index for CBB images.
+
+    Args:
+        cive: np.ndarray, CIVE index.
+        threshold: float, threshold value for mask creation.
+
+    Returns:
+        mask: np.ndarray, binary mask.
+    """
     if threshold is None:
         threshold = tf.reduce_mean(cive)
         # threshold = -48.63
@@ -134,29 +219,80 @@ def get_mask_cbb(cive, threshold=None):
 
 
 def create_mask_pair(image, label):
+    """
+    Create a mask pair for the given image and label.
+
+    Args:
+        image: np.ndarray, input image.
+        label: np.ndarray, input label.
+
+    Returns:
+        image: np.ndarray, input image.
+        mask: np.ndarray, binary mask.
+    """
     cive = compute_cive(image)
     mask = get_mask(cive, threshold=None)
     return image, mask
 
 
 def create_mask_pair_cbb(image, label):
+    """
+    Create a mask pair for the given CBB image and label.
+
+    Args:
+        image: np.ndarray, input image.
+        label: np.ndarray, input label.
+
+    Returns:
+        image: np.ndarray, input image.
+        mask: np.ndarray, binary mask.
+    """
     cive = compute_cive_cbb(image)
     mask = get_mask_cbb(cive, threshold=None)
     return image, mask
 
 
 def build_Unet_dataset(train_dataset):
-    Unet_dataset = train_dataset.map(
+    """
+    Build the dataset including images and masks for UNet training.
+
+    Args:
+        train_dataset: tf.data.Dataset object.
+
+    Returns:
+        Unet_dataset: tf.data.Dataset object for UNet training.
+    """
+    unet_dataset = train_dataset.map(
         create_mask_pair, num_parallel_calls=tf.data.experimental.AUTOTUNE
     )
-    return Unet_dataset
+    return unet_dataset
 
 
 def which_classes(image, label, classes):
+    """
+    Filter the dataset based on the given classes.
+
+    Args:
+        image: np.ndarray, input image.
+        label: np.ndarray, input label.
+        classes: int, class to filter.
+
+    Returns:
+        bool: True if the label matches the classes, False otherwise.
+    """
     return tf.equal(label, classes)
 
 
 def get_healthy_image(train_dataset):
+    """
+    Get the healthy images from the dataset.
+
+    Args:
+        train_dataset: tf.data.Dataset object.
+
+    Returns:
+        healthy_dataset: tf.data.Dataset object for healthy images.
+    """
     filter_fn = partial(which_classes, classes=4)
     healthy_dataset = train_dataset.filter(filter_fn)
     # healthy_dataset_num = count_data_items(healthy_dataset)
@@ -165,6 +301,18 @@ def get_healthy_image(train_dataset):
 
 
 def get_all_diseases_image(train_dataset):
+    """
+    Get all the diseases images including CBB, CBSD, CGM, and CMD from the dataset.
+
+    Args:
+        train_dataset: tf.data.Dataset object.
+
+    Returns:
+        cbb_dataset: tf.data.Dataset object for CBB images.
+        cbsd_dataset: tf.data.Dataset object for CBSD images.
+        cgm_dataset: tf.data.Dataset object for CGM images.
+        cmd_dataset: tf.data.Dataset object for CMD images.
+    """
     cbb_dataset = get_CBB_image(train_dataset)
     cbsd_dataset = get_CBSD_image(train_dataset)
     cgm_dataset = get_CGM_image(train_dataset)
@@ -173,6 +321,15 @@ def get_all_diseases_image(train_dataset):
 
 
 def get_CBB_image(train_dataset):
+    """
+    Get the CBB images from the dataset.
+
+    Args:
+        train_dataset: tf.data.Dataset object.
+
+    Returns:
+        cbb_dataset: tf.data.Dataset object for CBB images.
+    """
     filter_fn = partial(which_classes, classes=0)
     cbb_dataset = train_dataset.filter(filter_fn)
     # cbb_dataset_num = count_data_items(cbb_dataset)
@@ -181,6 +338,15 @@ def get_CBB_image(train_dataset):
 
 
 def get_CBSD_image(train_dataset):
+    """
+    Get the CBSD images from the dataset.
+
+    Args:
+        train_dataset: tf.data.Dataset object.
+
+    Returns:
+        cbsd_dataset: tf.data.Dataset object for CBSD images.
+    """
     filter_fn = partial(which_classes, classes=1)
     cbsd_dataset = train_dataset.filter(filter_fn)
     # cbsd_dataset_num = count_data_items(cbsd_dataset)
@@ -189,6 +355,15 @@ def get_CBSD_image(train_dataset):
 
 
 def get_CGM_image(train_dataset):
+    """
+    Get the CGM images from the dataset.
+
+    Args:
+        train_dataset: tf.data.Dataset object.
+
+    Returns:
+        cgm_dataset: tf.data.Dataset object for CGM images.
+    """
     filter_fn = partial(which_classes, classes=2)
     cgm_dataset = train_dataset.filter(filter_fn)
     # cgm_dataset_num = count_data_items(cgm_dataset)
@@ -197,6 +372,15 @@ def get_CGM_image(train_dataset):
 
 
 def get_CMD_image(train_dataset):
+    """
+    Get the CMD images from the dataset.
+
+    Args:
+        train_dataset: tf.data.Dataset object.
+
+    Returns:
+        cmd_dataset: tf.data.Dataset object for CMD images.
+    """
     filter_fn = partial(which_classes, classes=3)
     cmd_dataset = train_dataset.filter(filter_fn)
     # cmd_dataset_num = count_data_items(cmd_dataset)
@@ -204,22 +388,49 @@ def get_CMD_image(train_dataset):
     return cmd_dataset
 
 
-def data_acquisition(GCS_path, train_file_path, image_size):
-    trainfile, valfile = split_data(GCS_path, train_file_path)
+def data_acquisition(gcs_path, train_file_path, image_size):
+    """
+    Acquire the training and validation datasets for image segmentation.
+
+    Args:
+        gcs_path: str, path to the GCS bucket.
+        train_file_path: str, path to the training file.
+        image_size: list, size of the images.
+
+    Returns:
+        train_dataset: tf.data.Dataset object for training.
+        val_dataset: tf.data.Dataset object for validation.
+    """
+    trainfile, valfile = split_data(gcs_path, train_file_path)
     train_dataset = load_trainset(trainfile, image_size=image_size, labeled=True)
     val_dataset = load_valset(valfile, image_size=image_size, labeled=True)
     # visualise the images
-    # fig1, fig2 = vs.origin_image_plot(train_dataset)
-    # fig2.savefig("figures/Healthy Leaf.png")
-    # fig1.savefig("figures/Diseases Leaf.png")
+    fig1, fig2 = vs.origin_image_plot(train_dataset)
+    fig2.savefig("figures/Healthy Leaf.png")
+    fig1.savefig("figures/Diseases Leaf.png")
     return train_dataset, val_dataset
 
 
 def data_acquisition_classification(
-    GCS_path, train_file_path, image_size, train_ratio, val_ratio
+    gcs_path, train_file_path, image_size, train_ratio, val_ratio
 ):
+    """
+    Acquire the training, validation, and test datasets to build a new dataset for classification.
+
+    Args:
+        gcs_path: str, path to the GCS bucket.
+        train_file_path: str, path to the training file.
+        image_size: list, size of the images.
+        train_ratio: float, ratio of training data.
+        val_ratio: float, ratio of validation data.
+
+    Returns:
+        train_dataset: tf.data.Dataset object for training.
+        val_dataset: tf.data.Dataset object for validation.
+        test_dataset: tf.data.Dataset object for testing.
+    """
     trainfile, valfile, testfile = split_data_classification(
-        GCS_path, train_file_path, train_ratio, val_ratio
+        gcs_path, train_file_path, train_ratio, val_ratio
     )
     train_dataset = load_trainset(trainfile, image_size=image_size, labeled=True)
     val_dataset = load_valset(valfile, image_size=image_size, labeled=True)
@@ -228,6 +439,16 @@ def data_acquisition_classification(
 
 
 def decode_raw_image(image_data, image_shape):
+    """
+    Decode the raw image data and resize it to the specified shape.
+
+    Args:
+        image_data: bytes, raw image data.
+        image_shape: list, shape of the image.
+
+    Returns:
+        image: tf.Tensor, decoded and resized image.
+    """
     image = tf.image.decode_jpeg(image_data, channels=3)
     image = tf.image.resize(image, image_shape)
     image = tf.cast(image, tf.float32) / 255.0
@@ -236,6 +457,18 @@ def decode_raw_image(image_data, image_shape):
 
 
 def read_tfrecord(example, image_size, labeled):
+    """
+    Read a single TFRecord example and decode the image data.
+
+    Args:
+        example: tf.train.Example, TFRecord example.
+        image_size: list, size of the images.
+        labeled: bool, whether the dataset is labeled.
+
+    Returns:
+        images: tf.Tensor, decoded and resized image.
+        labels: tf.Tensor, labels for the images (if labeled).
+    """
     tfrecord_format = (
         {
             "image": tf.io.FixedLenFeature([], tf.string),
@@ -256,17 +489,41 @@ def read_tfrecord(example, image_size, labeled):
     return images, image_name
 
 
-def split_data(GCS_path, train_file_path):
+def split_data(gcs_path, train_file_path):
+    """
+    Split the tfrecords into training and validation use.
+
+    Args:
+        gcs_path: str, path to the GCS bucket.
+        train_file_path: str, path to the training file.
+
+    Returns:
+        train_filename: list, list of training filenames.
+        val_filename: list, list of validation filenames.
+    """
     train_filename, val_filename = train_test_split(
-        tf.io.gfile.glob(GCS_path + train_file_path), train_size=0.8, random_state=711
+        tf.io.gfile.glob(gcs_path + train_file_path), train_size=0.8, random_state=711
     )
     return train_filename, val_filename
 
 
-def split_data_classification(GCS_path, train_file_path, train_ratio, val_ratio):
+def split_data_classification(gcs_path, train_file_path, train_ratio, val_ratio):
+    """
+    Split the tfrecords into training, validation, and test use.
 
+    Args:
+        gcs_path: str, path to the GCS bucket.
+        train_file_path: str, path to the training file.
+        train_ratio: float, ratio of training data.
+        val_ratio: float, ratio of validation data.
+
+    Returns:
+        train_filename: list, list of training filenames.
+        val_filename: list, list of validation filenames.
+        test_filename: list, list of test filenames.
+    """
     train_filename, val_test_filename = train_test_split(
-        tf.io.gfile.glob(GCS_path + train_file_path),
+        tf.io.gfile.glob(gcs_path + train_file_path),
         train_size=train_ratio,
         random_state=711,
     )
@@ -280,9 +537,21 @@ def split_data_classification(GCS_path, train_file_path, train_ratio, val_ratio)
 
 
 def load_trainset(filenames, image_size, labeled, ordered=False):
+    """
+    Load the training dataset from TFRecord files.
+
+    Args:
+        filenames: list, list of TFRecord filenames.
+        image_size: list, size of the images.
+        labeled: bool, whether the dataset is labeled.
+        ordered: bool, whether to load the dataset in order.
+
+    Returns:
+        dataset: tf.data.Dataset object for training.
+    """
     ignore_order = tf.data.Options()
     if not ordered:
-        ignore_order.experimental_deterministic = True  # disable order, increase speed
+        ignore_order.experimental_deterministic = True
     dataset = tf.data.TFRecordDataset(
         filenames,
         num_parallel_reads=tf.data.experimental.AUTOTUNE,
@@ -298,9 +567,21 @@ def load_trainset(filenames, image_size, labeled, ordered=False):
 
 
 def load_valset(filenames, image_size, labeled, ordered=False):
+    """
+    Load the validation dataset from TFRecord files.
+
+    Args:
+        filenames: list, list of TFRecord filenames.
+        image_size: list, size of the images.
+        labeled: bool, whether the dataset is labeled.
+        ordered: bool, whether to load the dataset in order.
+
+    Returns:
+        dataset: tf.data.Dataset object for validation.
+    """
     ignore_order = tf.data.Options()
     if not ordered:
-        ignore_order.experimental_deterministic = True  # disable order, increase speed
+        ignore_order.experimental_deterministic = True
     dataset = tf.data.TFRecordDataset(
         filenames,
         num_parallel_reads=tf.data.experimental.AUTOTUNE,
@@ -316,9 +597,21 @@ def load_valset(filenames, image_size, labeled, ordered=False):
 
 
 def load_testset(filenames, image_size, labeled, ordered=False):
+    """
+    Load the test dataset from TFRecord files.
+
+    Args:
+        filenames: list, list of TFRecord filenames.
+        image_size: list, size of the images.
+        labeled: bool, whether the dataset is labeled.
+        ordered: bool, whether to load the dataset in order.
+
+    Returns:
+        dataset: tf.data.Dataset object for testing.
+    """
     ignore_order = tf.data.Options()
     if not ordered:
-        ignore_order.experimental_deterministic = True  # disable order, increase speed
+        ignore_order.experimental_deterministic = True
     dataset = tf.data.TFRecordDataset(
         filenames,
         num_parallel_reads=tf.data.experimental.AUTOTUNE,
@@ -334,6 +627,15 @@ def load_testset(filenames, image_size, labeled, ordered=False):
 
 
 def count_data_items(trainset):
+    """
+    Count the number of samples in the dataset.
+
+    Args:
+        trainset: tf.data.Dataset object.
+
+    Returns:
+        sample_count: int, number of samples in the dataset.
+    """
     sample_count = sum(1 for _ in trainset)
     return sample_count
 
@@ -342,6 +644,18 @@ def count_data_items(trainset):
 
 
 def create_classification_dataset_batch(model, dataset, batch_size=64, threshold=0.4):
+    """
+    Create a new dataset after image segmentation.
+
+    Args:
+        model: tf.keras.Model object, trained UNet model for segmentation.
+        dataset: tf.data.Dataset object, input dataset.
+        batch_size: int, batch size for the dataset.
+        threshold: float, threshold value for mask creation.
+
+    Returns:
+        dataset: tf.data.Dataset object, new dataset after segmentation.
+    """
     images, labels = [], []
 
     for image, label in dataset:
@@ -371,6 +685,17 @@ def _int64_feature(value):
 
 
 def create_example(image, label, image_type=tf.float32):
+    """
+    Create a TFRecord example from the image and label.
+
+    Args:
+        image: tf.Tensor, input image.
+        label: tf.Tensor, input label.
+        image_type: tf.DType, type of the image.
+
+    Returns:
+        example: tf.train.Example, TFRecord example.
+    """
     # image_raw = tf.io.serialize_tensor(tf.cast(image, image_type)).numpy()
     image_uint8 = tf.image.convert_image_dtype(image, tf.uint8)
     image_raw = tf.image.encode_jpeg(image_uint8).numpy()
@@ -384,6 +709,13 @@ def create_example(image, label, image_type=tf.float32):
 
 
 def save_tfrecord(dataset, filename):
+    """
+    Save the dataset to a TFRecord file.
+
+    Args:
+        dataset: tf.data.Dataset object, input dataset.
+        filename: str, path to the output TFRecord file.
+    """
     with tf.io.TFRecordWriter(filename) as writer:
         for image, label in dataset:
             example = create_example(image, label)
@@ -392,6 +724,15 @@ def save_tfrecord(dataset, filename):
 
 
 def count_data_items_from_tfrecord(filenames):
+    """
+    Count the number of samples in the TFRecord files.
+
+    Args:
+        filenames: list, list of TFRecord filenames.
+
+    Returns:
+        count: int, number of samples in the TFRecord files.
+    """
     count = 0
     for f in filenames:
         for _ in tf.data.TFRecordDataset(f):
@@ -400,7 +741,7 @@ def count_data_items_from_tfrecord(filenames):
 
 
 def preprocess_image_for_classification(
-    GCS_path,
+    gcs_path,
     train_file_path,
     val_file_path,
     test_file_path,
@@ -408,13 +749,32 @@ def preprocess_image_for_classification(
     batch_size,
     autotune,
 ):
-    trainset_path = GCS_path + train_file_path
+    """
+    Preprocess the dataset for cassava leaf image classification based on new dataset.
+
+    Args:
+        gcs_path: str, path to the GCS bucket.
+        train_file_path: str, path to the training file.
+        val_file_path: str, path to the validation file.
+        test_file_path: str, path to the test file.
+        image_size: list, size of the images.
+        batch_size: int, batch size for the dataset.
+        autotune: tf.data.experimental.AUTOTUNE object.
+
+    Returns:
+        trainset: tf.data.Dataset object for training.
+        valset: tf.data.Dataset object for validation.
+        testset: tf.data.Dataset object for testing.
+        num_trainset: int, number of samples in the training dataset.
+        num_valset: int, number of samples in the validation dataset.
+    """
+    trainset_path = gcs_path + train_file_path
     trainset_files = tf.io.gfile.glob(trainset_path)
     num_trainset = count_data_items_from_tfrecord(trainset_files)
-    valset_path = GCS_path + val_file_path
+    valset_path = gcs_path + val_file_path
     valset_files = tf.io.gfile.glob(valset_path)
     num_valset = count_data_items_from_tfrecord(valset_files)
-    testset_path = GCS_path + test_file_path
+    testset_path = gcs_path + test_file_path
 
     trainset = load_trainset(trainset_files, image_size=image_size, labeled=True)
     # trainset = trainset.repeat()
@@ -431,7 +791,7 @@ def preprocess_image_for_classification(
 
 
 def preprocess_image_for_compare(
-    GCS_path,
+    gcs_path,
     train_file_path,
     image_size,
     train_ratio,
@@ -439,8 +799,27 @@ def preprocess_image_for_compare(
     batch_size,
     autotune,
 ):
+    """
+    Preprocess the dataset for cassava leaf image classification based on original dataset.
+
+    Args:
+        gcs_path: str, path to the GCS bucket.
+        train_file_path: str, path to the training file.
+        image_size: list, size of the images.
+        train_ratio: float, ratio of training data.
+        val_ratio: float, ratio of validation data.
+        batch_size: int, batch size for the dataset.
+        autotune: tf.data.experimental.AUTOTUNE object.
+
+    Returns:
+        trainset: tf.data.Dataset object for training.
+        valset: tf.data.Dataset object for validation.
+        testset: tf.data.Dataset object for testing.
+        num_trainset: int, number of samples in the training dataset.
+        num_valset: int, number of samples in the validation dataset.
+    """
     trainfile, valfile, testfile = split_data_classification(
-        GCS_path, train_file_path, train_ratio, val_ratio
+        gcs_path, train_file_path, train_ratio, val_ratio
     )
     num_trainset = count_data_items_from_tfrecord(trainfile)
     num_valset = count_data_items_from_tfrecord(valfile)
