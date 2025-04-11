@@ -1,10 +1,31 @@
+"""
+This file contains functions to visualize the results of the whole process
+of cassava disease classification task.
+
+The functions include:
+- `origin_image_plot`: Plot the original images from the dataset.
+- `learning_curve`: Plot the learning curve of the model.
+- `plot_cive_result`: Plot the original image, mask image, and processed image.
+- `origin_Unet_result_plot`: Plot the original image and processed image including all the diseases.
+- `classfication_result`: Plot confusion matrix and calculate accuracy of the EfficientNetB0 model.
+"""
+
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.metrics import ConfusionMatrixDisplay, accuracy_score, confusion_matrix
 
 
 def origin_image_plot(train_dataset):
+    """
+    Plot the original images from the dataset.
 
+    Args:
+        train_dataset: The dataset containing the images and labels.
+
+    Returns:
+        fig1: The figure containing different disease images.
+        fig2: The figure containing the healthy image.
+    """
     fig1, axes = plt.subplots(2, 2, figsize=(10, 10))
     fig2, ax2 = plt.subplots(1, 1, figsize=(10, 10))
 
@@ -56,19 +77,40 @@ def origin_image_plot(train_dataset):
 
 
 def learning_curve(history):
+    """
+    Plot the learning curve of the model.
+
+    Args:
+        history: The history object returned by the model's fit method.
+
+    Returns:
+        fig: The figure containing the learning curve.
+    """
     history_frame = pd.DataFrame(history.history)
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 8))
-    ax.plot(history_frame["loss"], label="Training Loss")
-    ax.plot(history_frame["val_loss"], label="Validation Loss")
+    epochs = range(1, len(history_frame) + 1)
+
+    ax.plot(epochs, history_frame["loss"], label="Training Loss")
+    ax.plot(epochs, history_frame["val_loss"], label="Validation Loss")
     ax.legend()
     ax.set_xlabel("Epochs")
     ax.set_ylabel("Loss")
+    ax.set_xticks(range(1, len(history_frame) + 1, 2))
 
     return fig
 
 
 def plot_cive_result(dataset):
+    """
+    Plot the original image, mask image, and processed image.
+
+    Args:
+        dataset: The dataset containing the images and masks.
+
+    Returns:
+        fig: The figure containing the original image, mask image, and processed image.
+    """
     fig, axes = plt.subplots(1, 3, figsize=(12, 8))
 
     for image, mask in dataset.skip(14).take(1):
@@ -104,32 +146,18 @@ def plot_cive_result(dataset):
     return fig
 
 
-# def origin_Unet_result_plot(origin_image: list, mask_image: list, image_name: list):
-#     fig, axes = plt.subplots(4, 2, figsize=(6, 10))
-#     for i in range(4):
-#         axes[i, 0].imshow(origin_image[i])
-#         axes[i, 0].set_xlabel(image_name[i], fontsize=15)
-#         axes[i, 0].set_xticks([])
-#         axes[i, 0].set_yticks([])
-#         axes[i, 0].spines["top"].set_visible(False)
-#         axes[i, 0].spines["bottom"].set_visible(False)
-#         axes[i, 0].spines["left"].set_visible(False)
-#         axes[i, 0].spines["right"].set_visible(False)
-
-#         axes[i, 1].imshow(origin_image[i] * mask_image[i])
-#         axes[i, 1].set_xlabel(f"Processed {image_name[i]}", fontsize=15)
-#         axes[i, 1].set_xticks([])
-#         axes[i, 1].set_yticks([])
-#         axes[i, 1].spines["top"].set_visible(False)
-#         axes[i, 1].spines["bottom"].set_visible(False)
-#         axes[i, 1].spines["left"].set_visible(False)
-#         axes[i, 1].spines["right"].set_visible(False)
-#         plt.tight_layout(pad=0.3)
-
-#     return fig
-
-
 def origin_Unet_result_plot(origin_image: list, mask_image: list, image_name: list):
+    """
+    Plot the original image and the processed image including all the diseases.
+
+    Args:
+        origin_image: The original images.
+        mask_image: The mask images.
+        image_name: The names of the images.
+
+    Returns:
+        fig: The figure containing the original image and the processed image.
+    """
     fig, axes = plt.subplots(2, 4, figsize=(10, 6))
     for i in range(4):
         axes[0, i].imshow(origin_image[i])
@@ -155,7 +183,17 @@ def origin_Unet_result_plot(origin_image: list, mask_image: list, image_name: li
 
 
 def classfication_result(y_true, y_pred):
+    """
+    Plot the confusion matrix and calculate the accuracy of the EfficientNetB1 model.
 
+    Args:
+        y_true: The true labels.
+        y_pred: The predicted labels.
+
+    Returns:
+        fig: The confusion matrix figure.
+        acc: The accuracy of the model.
+    """
     # calculate the accuracy
     acc = accuracy_score(y_true, y_pred)
 
@@ -177,6 +215,6 @@ def classfication_result(y_true, y_pred):
     ax.set_yticks(range(len(yticks)))
     ax.set_yticklabels(yticks, fontsize=12)
 
-    ax.tight_layout(pad=0.3)
+    plt.tight_layout(pad=0.3)
 
     return fig, acc
