@@ -1,0 +1,7 @@
+name: amls2-final-project-env
+
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - -r requirements.txt
