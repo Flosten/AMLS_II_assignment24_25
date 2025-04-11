@@ -1,3 +1,17 @@
+"""
+This file contains functions to build and train the U-Net model for image segmentation
+and the EfficientNetB0 model for cassava disease classification.
+
+The functions include:
+- `set_seed`: Set the seed for reproducibility.
+- `Unet_Arch`: Define the U-Net architecture.
+- `Unet_train`: Train the U-Net model.
+- `Unet_test`: Test the U-Net model.
+- `EfficientNetB0_Arch`: Build a EfficientNetB0 model based on transfer learning.
+- `Effi_B0_train`: Train the EfficientNetB0 model.
+- `Effi_B0_test`: Test the EfficientNetB0 model.
+"""
+
 import os
 import random
 
@@ -5,13 +19,22 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import initializers, layers, models
-from tensorflow.keras.applications import EfficientNetB0
+from tensorflow.keras.applications import EfficientNetB1
 
 import A.data_preprocessing as dp
 import A.visualising as vs
 
 
 def set_seed(seed=711):
+    """
+    Set the seed for reproducibility.
+
+    Args:
+        seed (int): The seed value to set.
+
+    Returns:
+        tf.random.Generator: A TensorFlow random generator with the specified seed.
+    """
     os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
@@ -22,6 +45,16 @@ def set_seed(seed=711):
 
 
 def Unet_Arch(dropout_num, input_shape=(256, 256, 3)):
+    """
+    Define the U-Net architecture.
+
+    Args:
+        dropout_num (float): Dropout rate.
+        input_shape (tuple): Shape of the input image.
+
+    Returns:
+        tf.keras.Model: U-Net model.
+    """
     inputs = keras.Input(shape=input_shape)
     conv_init = initializers.HeNormal(seed=711)
     bias_init = initializers.Zeros()
@@ -151,7 +184,20 @@ def Unet_Arch(dropout_num, input_shape=(256, 256, 3)):
 
 
 def Unet_train(model, train, val, epochs=10, learning_rate=0.001):
+    """
+    Build the U-Net model.
 
+    Args:
+        model (tf.keras.Model): U-Net model.
+        train (tf.data.Dataset): Training dataset.
+        val (tf.data.Dataset): Validation dataset.
+        epochs (int): Number of epochs to train.
+        learning_rate (float): Learning rate.
+
+    Returns:
+        tf.keras.Model: Trained U-Net model.
+        matplotlib.figure.Figure: Learning curve figure.
+    """
     model.compile(
         optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
         loss=tf.keras.losses.BinaryCrossentropy(),
@@ -169,6 +215,16 @@ def Unet_train(model, train, val, epochs=10, learning_rate=0.001):
 
 
 def Unet_test(model, dataset):
+    """
+    Test the U-Net model.
+
+    Args:
+        model (tf.keras.Model): U-Net model.
+        dataset (tf.data.Dataset): Dataset to test.
+
+    Returns:
+        matplotlib.figure.Figure: Figure showing the original image, mask, and processed image.
+    """
     cbb_dataset, cbsd_dataset, cgm_dataset, cmd_dataset = dp.get_all_diseases_image(
         dataset
     )
@@ -213,18 +269,30 @@ def Unet_test(model, dataset):
     return fig
 
 
-def EfficientNetB0_Arch(
+def EfficientNetB1_Arch(
     dropout_ratio, layers_freezed, input_shape=(224, 224, 3), classes=5
 ):
-    base_model = EfficientNetB0(
+    """
+    Build a EfficientNetB1 model based on transfer learning.
+
+    Args:
+        dropout_ratio (float): Dropout rate.
+        layers_freezed (int): Number of layers to freeze.
+        input_shape (tuple): Shape of the input image.
+        classes (int): Number of classes.
+
+    Returns:
+        tf.keras.Model: EfficientNetB1 model.
+    """
+    base_model = EfficientNetB1(
         include_top=False, weights="imagenet", input_shape=input_shape
     )
     base_model.trainable = True
 
     # Freeze some layers
     # cheak the number of layers in the base model
-    print(len(base_model.layers))  # 238
-    # Freeze the first 150 layers
+    print(len(base_model.layers))
+    # Freeze the first 50 layers
     for layer in base_model.layers[:layers_freezed]:
         layer.trainable = False
 
@@ -241,7 +309,7 @@ def EfficientNetB0_Arch(
     return model
 
 
-def Effi_B0_train(
+def Effi_B1_train(
     model,
     trainset,
     valset,
@@ -251,6 +319,24 @@ def Effi_B0_train(
     num_valset,
     batch_size,
 ):
+    """
+    Train the EfficientNetB1 model.
+
+    Args:
+        model (tf.keras.Model): EfficientNetB1 model.
+        trainset (tf.data.Dataset): Training dataset.
+        valset (tf.data.Dataset): Validation dataset.
+        epochs (int): Number of epochs to train.
+        learning_scheduler: Learning rate schedule.
+        num_samples (int): Number of samples in the training set.
+        num_valset (int): Number of samples in the validation set.
+        batch_size (int): Batch size.
+
+    Returns:
+        tf.keras.Model: Trained EfficientNetB1 model.
+        matplotlib.figure.Figure: Learning curve figure.
+        tf.keras.callbacks.History: Training history.
+    """
     model.compile(
         optimizer=tf.keras.optimizers.Adam(
             learning_rate=learning_scheduler, epsilon=0.001
@@ -272,8 +358,18 @@ def Effi_B0_train(
     return model, fig, history
 
 
-def Effi_B0_test(model, testset):
+def Effi_B1_test(model, testset):
+    """
+    Test the EfficientNetB1 model.
 
+    Args:
+        model (tf.keras.Model): EfficientNetB1 model.
+        testset (tf.data.Dataset): Test dataset.
+
+    Returns:
+        matplotlib.figure.Figure: Figure of confusion matrix.
+        float: Classification accuracy.
+    """
     y_true = []
     y_pred = []
 
